@@ -1,65 +1,221 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { User } from "@supabase/supabase-js";
+import { Search, LogOut, Play, ChefHat, Clock, Trash2, Settings } from "lucide-react";
+import { Recipe, ActiveSessionWithRecipe } from "@/lib/types";
+import Link from "next/link";
 import Image from "next/image";
 
+
 export default function Home() {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [activeSessions, setActiveSessions] = useState<ActiveSessionWithRecipe[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      // 1. Check if user is logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+        return;
+      }
+      setUser(session.user);
+
+      // 2. Fetch "Active" cooking sessions AND join the recipe title/times
+      const { data: sessionData } = await supabase
+        .from("cooking_sessions")
+        .select("*, recipes(title, prep_time_mins, cook_time_mins)")
+        .eq("user_id", session.user.id)
+        .eq("status", "active")
+        .order("current_step", { ascending: false });
+
+      // 3. Fetch all recipes for the "Popular" row
+      const { data: recipeData } = await supabase
+        .from("recipes")
+        .select("*");
+
+      if (sessionData) setActiveSessions(sessionData as unknown as ActiveSessionWithRecipe[]);
+      if (recipeData) setRecipes(recipeData);
+      
+      setLoading(false);
+    };
+    
+    fetchDashboardData();
+  }, [router]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  // Function to remove an abandoned meal from the Continue section
+  const handleRemoveSession = async (sessionId: string) => {
+    // We change the status to 'abandoned' so it no longer shows up
+    await supabase.from("cooking_sessions").update({ status: "abandoned" }).eq("id", sessionId);
+    setActiveSessions((prev) => prev.filter((s) => s.id !== sessionId));
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+  e.preventDefault();
+  if (searchQuery.trim()) {
+    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+  }
+};
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">Loading Kitchen OS...</div>;
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="flex flex-col min-h-screen bg-gray-50 p-6 pb-24 overflow-x-hidden">
+      {/* Header Section */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Hello, Chef 👋</h1>
+          <p className="text-sm text-gray-500">{user?.email}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/profile" className="p-2 text-gray-400 hover:text-blue-600 transition-colors" aria-label="Profile settings" title="Profile settings">
+            <Settings className="w-5 h-5" />
+          </Link>
+          <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-red-500 transition-colors" aria-label="Sign out" title="Sign out">
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Ingredient Search Bar */}
+      <form onSubmit={handleSearch} className="relative mb-8">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-700" />
+        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white placeholder-gray-400 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+          placeholder="What's in your kitchen? (e.g., eggs, rice)"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <button type="submit" className="hidden">Search</button>
+      </form>
+
+      {/* Netflix Row 1: Continue Cooking (Only shows if there are active sessions) */}
+      {activeSessions.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Continue Cooking</h2>
+          {/* The horizontal scroll container */}
+          <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
+            {activeSessions.map((activeSession) => (
+              <div 
+                key={activeSession.id} 
+                className="relative min-w-70 bg-gray-900 text-white p-5 rounded-2xl shadow-md snap-start flex flex-col justify-between"
+              >
+                {/* Ellipsis/Remove Button */}
+                <button 
+                  onClick={() => handleRemoveSession(activeSession.id)}
+                  className="absolute top-4 right-4 p-1.5 bg-gray-800 rounded-full hover:bg-red-500 transition-colors text-gray-400 hover:text-white"
+                  title="Remove Session"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+
+                <div className="mb-6 pr-8">
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-400 mb-1 block">
+                    Step {activeSession.current_step}
+                  </span>
+                  <h3 className="text-lg font-bold leading-tight">{activeSession.recipes.title}</h3>
+                </div>
+
+                <Link 
+                  href={`/cook/${activeSession.id}`}
+                  className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-blue-500 transition-colors"
+                >
+                  <Play className="w-4 h-4" />
+                  Resume
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      )}
+
+      {/* Netflix Row 2: Popular Recipes */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Popular Recipes</h2>
+        <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
+          {recipes.map((recipe) => (
+            <Link 
+              href={`/recipes/${recipe.id}`}
+              key={recipe.id} 
+              className="block min-w-60 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md snap-start"
+            >
+              
+              <div className="h-32 rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
+                {recipe.image_url ? (
+                  <Image 
+                  src={recipe.image_url} 
+                  alt={recipe.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 300px"
+                  priority
+                  className="object-cover"
+                />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <ChefHat className="w-10 h-10" />
+                  </div>
+                )}
+              </div>
+
+              <h3 className="text-md font-bold text-gray-900 truncate">{recipe.title}</h3>
+              <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                <Clock className="w-3 h-3" />
+                <span>{recipe.prep_time_mins + recipe.cook_time_mins} mins</span>
+              </div>
+            </Link>
+          ))}
         </div>
-      </main>
-    </div>
+      </div>
+
+      {/* Netflix Row 3: African Dishes (Placeholder) */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">African Dishes</h2>
+        <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
+          {/* We are reusing the recipes array here just to show the layout, eventually you will filter this! */}
+          {recipes.map((recipe) => (
+            <Link 
+              href={`/recipes/${recipe.id}`}
+              key={`african-${recipe.id}`} 
+              className="block min-w-60 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md snap-start"
+            >
+               <div className="h-32 rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
+                {recipe.image_url ? (
+                  <Image 
+                  src={recipe.image_url} 
+                  alt={recipe.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 300px"
+                  priority
+                  className="object-cover"
+                />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <ChefHat className="w-10 h-10" />
+                  </div>
+                )}
+              </div>
+              <h3 className="text-md font-bold text-gray-900 truncate">{recipe.title}</h3>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </main>
   );
 }
