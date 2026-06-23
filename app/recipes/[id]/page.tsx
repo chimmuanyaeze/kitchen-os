@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Clock, Users, ArrowLeft, Heart, BookmarkPlus, Play } from "lucide-react";
-import { RecipeDetail, RecipeStep } from "@/lib/types";
+import { Clock, Users, ArrowLeft, Heart, BookmarkPlus, Play, Star} from "lucide-react";
+import { RecipeDetail, RecipeStep, Review } from "@/lib/types";
 
 export default function RecipeDetailPage() {
   const params = useParams();
@@ -22,6 +22,13 @@ export default function RecipeDetailPage() {
   const [likeCount, setLikeCount] = useState(0);
   const [isLiking, setIsLiking] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // --- REVIEWS STATE ---
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [hoveredStar, setHoveredStar] = useState(0); // For the interactive star animation
 
   useEffect(() => {
     async function fetchRecipeDetails() {
@@ -102,6 +109,56 @@ export default function RecipeDetailPage() {
     };
     fetchLikeStatus();
   }, [recipe?.id, recipe?.likes_count]); 
+
+   // Fetch existing reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!recipe?.id) return;
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("recipe_id", recipe.id)
+        .order("created_at", { ascending: false });
+
+      if (data && !error) setReviews(data);
+    };
+    fetchReviews();
+  }, [recipe?.id]);
+
+  // Handle saving a new review
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUserId) {
+      alert("You must be logged in to leave a review.");
+      return;
+    }
+    if (rating < 1 || rating > 5) return;
+
+    setIsSubmittingReview(true);
+
+    const { data, error } = await supabase
+      .from("reviews")
+      .insert({
+        user_id: currentUserId,
+        recipe_id: recipe!.id,
+        rating,
+        comment: comment.trim() || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to post review:", error);
+      alert("There was an error saving your review.");
+    } else {
+      // Instantly add the new review to the top of the list!
+      setReviews([data, ...reviews]);
+      setComment(""); // Clear the text box
+      setRating(5);   // Reset stars to 5
+    }
+    setIsSubmittingReview(false);
+  };
+
 
  const handleLikeToggle = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault(); // Needed for RecipeCard to stop navigation
@@ -221,8 +278,7 @@ export default function RecipeDetailPage() {
     return <div className="p-6 text-center text-red-500">Recipe not found.</div>;
   }
 
-
-
+ 
   return (
     <main className="min-h-screen bg-gray-50 pb-24">
       {/* Header Image Placeholder & Back Button */}
@@ -369,6 +425,95 @@ export default function RecipeDetailPage() {
           </div>
         </div>
       )}
+
+      {/* --- REVIEWS SECTION --- */}
+      <div className="max-w-4xl mx-auto px-6 pb-24">
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-2">
+            <Star className="w-6 h-6 text-amber-400 fill-current" />
+            Chef Reviews ({reviews.length})
+          </h2>
+
+          {/* 1. The Input Form (Only show if logged in) */}
+          {currentUserId ? (
+            <form onSubmit={handleSubmitReview} className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+              <h3 className="font-bold text-gray-900 mb-4">Leave a Review</h3>
+              
+              {/* Interactive Star Selector */}
+              <div className="flex gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    title="rating"
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoveredStar(star)}
+                    onMouseLeave={() => setHoveredStar(0)}
+                    className="p-1 transition-transform hover:scale-110"
+                  >
+                    <Star 
+                      className={`w-8 h-8 transition-colors ${
+                        star <= (hoveredStar || rating) 
+                          ? "fill-amber-400 text-amber-400" 
+                          : "text-gray-300"
+                      }`} 
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="What did you think of this recipe? (Optional)"
+                className="w-full p-4 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none h-24 mb-4 text-gray-900 placeholder:text-gray-400"
+              />
+              
+              <button
+                type="submit"
+                disabled={isSubmittingReview}
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {isSubmittingReview ? "Posting..." : "Post Review"}
+              </button>
+            </form>
+          ) : (
+            <div className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100 text-center">
+              <p className="text-gray-500">Please log in to share your thoughts.</p>
+            </div>
+          )}
+
+          {/* 2. The Comments List */}
+          <div className="space-y-6">
+            {reviews.length === 0 ? (
+              <p className="text-gray-500 text-center italic py-4">No reviews yet. Be the first to rate this recipe!</p>
+            ) : (
+              reviews.map((review) => (
+                <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star 
+                          key={star} 
+                          className={`w-4 h-4 ${star <= review.rating ? "fill-amber-400 text-amber-400" : "text-gray-200"}`} 
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 ml-2">A Fellow Chef</span>
+                    <span className="text-xs text-gray-400 ml-auto">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {review.comment && (
+                    <p className="text-gray-600 leading-relaxed mt-2">{review.comment}</p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
     </main>
   );
 }

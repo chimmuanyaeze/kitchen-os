@@ -69,3 +69,16 @@ export interface RecipeWithIngredients extends Recipe {
     };
   }[];
 }
+
+export interface Review {
+  id: string;
+  user_id: string;
+  recipe_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  // We add this optional profile join so we can display who wrote the review!
+  profiles?: {
+    role?: string;
+  };
+}
