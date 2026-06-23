@@ -17,6 +17,12 @@ export default function RecipeDetailPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // --- LIKE BUTTON STATE ---
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [isLiking, setIsLiking] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   useEffect(() => {
     async function fetchRecipeDetails() {
 
@@ -24,12 +30,13 @@ export default function RecipeDetailPage() {
 
       // Check if the recipe is already saved by this user
       if (authSession) {
-      const { data: savedData } = await supabase
-        .from("saved_recipes")
-        .select("id")
-        .eq("user_id", authSession.user.id)
-        .eq("recipe_id", params.id)
-        .single();
+        setCurrentUserId(authSession.user.id);
+        const { data: savedData } = await supabase
+          .from("saved_recipes")
+          .select("id")
+          .eq("user_id", authSession.user.id)
+          .eq("recipe_id", params.id)
+          .single();
 
       if (savedData) {
         setIsSaved(true);
@@ -71,7 +78,74 @@ export default function RecipeDetailPage() {
     }
   }, [params.id]);
 
-  
+ // 1. Check if the user already liked this recipe when the page loads
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setCurrentUserId(session.user.id);
+        
+        // If we have a recipe loaded, check the ledger
+        if (recipe?.id) {
+          setLikeCount(recipe.likes_count || 0); // Set initial count
+          
+          const { data } = await supabase
+            .from("user_likes")
+            .select("id")
+            .eq("user_id", session.user.id)
+            .eq("recipe_id", recipe.id)
+            .maybeSingle();
+            
+          if (data) setIsLiked(true);
+        }
+      }
+    };
+    fetchLikeStatus();
+  }, [recipe?.id, recipe?.likes_count]); 
+
+ const handleLikeToggle = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault(); // Needed for RecipeCard to stop navigation
+    
+    if (!currentUserId) {
+      alert("Please log in to like recipes!");
+      return;
+    }
+    if (isLiking || !recipe) return;
+
+    setIsLiking(true);
+
+    // 1. THE MATH FIX: Prevent negative numbers!
+    const newIsLiked = !isLiked;
+    const newCount = newIsLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
+
+    // 2. Optimistic UI Update
+    setIsLiked(newIsLiked);
+    setLikeCount(newCount);
+
+    try {
+      if (newIsLiked) {
+        // 3. THE ERROR FIX: Force a crash if Supabase rejects it
+        const { error: likeErr } = await supabase.from("user_likes").insert({ user_id: currentUserId, recipe_id: recipe.id });
+        if (likeErr) throw likeErr;
+
+        const { error: recErr } = await supabase.from("recipes").update({ likes_count: newCount }).eq("id", recipe.id);
+        if (recErr) throw recErr;
+      } else {
+        const { error: unlikeErr } = await supabase.from("user_likes").delete().eq("user_id", currentUserId).eq("recipe_id", recipe.id);
+        if (unlikeErr) throw unlikeErr;
+
+        const { error: recErr } = await supabase.from("recipes").update({ likes_count: newCount }).eq("id", recipe.id);
+        if (recErr) throw recErr;
+      }
+    } catch (error) {
+      // 4. If anything fails, revert the math and the UI
+      setIsLiked(!newIsLiked);
+      setLikeCount(newIsLiked ? Math.max(0, newCount - 1) : newCount + 1);
+      console.error("Database rejected the like:", error);
+    } finally {
+      setIsLiking(false);
+    }
+  };
 
   // This function creates the cooking session and moves the user to the kitchen
   // 1. This just opens the confirmation modal
@@ -147,6 +221,8 @@ export default function RecipeDetailPage() {
     return <div className="p-6 text-center text-red-500">Recipe not found.</div>;
   }
 
+
+
   return (
     <main className="min-h-screen bg-gray-50 pb-24">
       {/* Header Image Placeholder & Back Button */}
@@ -163,17 +239,29 @@ export default function RecipeDetailPage() {
 
       <div className="p-6 -mt-6 relative bg-gray-50 rounded-t-2xl">
         {/* Title and Quick Actions */}
-        <div className="flex justify-between items-start mb-4">
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">{recipe.title}</h1>
-          <div className="flex gap-2">
-            <button
-              className="p-2 text-gray-400 hover:text-red-500 bg-white rounded-full shadow-sm"
-              title="Add to favorites"
-            >
-              <Heart className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        {/* Dynamic Like Button */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleLikeToggle}
+                aria-label={isLiked ? "Unlike recipe" : "Like recipe"}
+                className={`p-3 bg-white rounded-full shadow-sm transition-all hover:scale-110 active:scale-95 border ${
+                  isLiked ? "border-red-100" : "border-gray-100"
+                }`}
+                title={isLiked ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart 
+                  className={`w-5 h-5 transition-colors ${
+                    isLiked ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-red-500"
+                  }`} 
+                  aria-hidden="true" 
+                />
+              </button>
+              
+              {/* Optional: Show the count next to the button */}
+              <span className="text-sm font-bold text-gray-500">
+                {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
+              </span>
+            </div>
 
         {/* Stats Row */}
         <div className="flex gap-6 mb-8 text-sm text-gray-600 border-b border-gray-200 pb-6">

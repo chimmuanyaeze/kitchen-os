@@ -1,118 +1,157 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Save, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Edit2, Save, X, User } from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
+  
+  // State Machine
   const [dietaryPrefs, setDietaryPrefs] = useState("");
+  const [isEditing, setIsEditing] = useState(false); // The magic toggle
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  // Load the user and their existing preferences
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (!session) {
         router.push("/login");
         return;
       }
-      
-      setUserId(session.user.id);
 
-      // Check if they already have a profile saved
-      const { data: profile } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("dietary_preferences")
         .eq("id", session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile && profile.dietary_preferences) {
-        setDietaryPrefs(profile.dietary_preferences);
+      if (!error && data?.dietary_preferences) {
+        setDietaryPrefs(data.dietary_preferences);
       }
-      
-      setLoading(false);
+      setIsLoading(false);
     };
 
     fetchProfile();
   }, [router]);
 
-  // Save the preferences to the database
   const handleSave = async () => {
-    if (!userId) return;
     setIsSaving(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) return;
 
     const { error } = await supabase
       .from("profiles")
-      .upsert({ 
-        id: userId, 
-        dietary_preferences: dietaryPrefs,
-        updated_at: new Date().toISOString()
-      });
+      .update({ dietary_preferences: dietaryPrefs })
+      .eq("id", session.user.id);
 
-    setIsSaving(false);
-    
     if (error) {
-      alert("Failed to save profile.");
-      console.error(error);
+      console.error("Failed to save profile:", error);
+      alert("Error saving profile. Check console.");
     } else {
-      // Show a quick success feedback and go back home
-      alert("Dietary profile securely saved!");
-      router.push("/");
+      // Success! Lock the vault back into Read-Only mode
+      setIsEditing(false); 
     }
+    setIsSaving(false);
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500">Loading...</div>;
-
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-10 border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/")}
             className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors"
-            aria-label="Go back"
             title="Go back"
+            aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">Dietary Profile</h1>
+          <h1 className="text-xl font-bold text-gray-900">Your Profile</h1>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6 max-w-md mx-auto w-full mt-4">
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mb-8">
-          <ShieldAlert className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-blue-900 leading-relaxed">
-            Kitchen OS AI will automatically adapt every recipe you cook to respect these rules.
-          </p>
+      <div className="p-6 max-w-2xl mx-auto mt-4">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          
+          {/* Section Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-600" /> Medical & Dietary Vault
+            </h2>
+            
+            {/* Show the Edit button ONLY if we are in Read-Only mode */}
+            {!isEditing && !isLoading && (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="flex items-center gap-2 text-sm font-medium text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Edit2 className="w-4 h-4" /> Edit
+              </button>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="text-gray-400 animate-pulse">Unlocking vault...</div>
+          ) : isEditing ? (
+            
+            // --- 🔓 EDIT MODE ---
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <p className="text-sm text-gray-500 mb-2">
+                Update your allergies, intolerances, and strict dietary rules here. The AI will strictly enforce these rules across all recipes.
+              </p>
+              <textarea
+                value={dietaryPrefs}
+                onChange={(e) => setDietaryPrefs(e.target.value)}
+                className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none h-32 text-gray-900 placeholder:text-gray-400"
+                placeholder="e.g., I am highly allergic to peanuts. I am lactose intolerant..."
+              />
+              <div className="flex justify-end gap-3 pt-2">
+                <button 
+                  onClick={() => setIsEditing(false)}
+                  className="px-5 py-2.5 rounded-xl font-medium text-gray-600 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                >
+                  <X className="w-4 h-4" /> Cancel
+                </button>
+                <button 
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save Profile"}
+                </button>
+              </div>
+            </div>
+            
+          ) : (
+            
+            // --- 🔒 READ-ONLY MODE ---
+            <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 animate-in fade-in duration-300">
+              {dietaryPrefs ? (
+                <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
+                  {dietaryPrefs}
+                </p>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 italic mb-4">Your medical vault is currently empty.</p>
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="text-blue-600 font-medium hover:underline"
+                  >
+                    Add your dietary restrictions now
+                  </button>
+                </div>
+              )}
+            </div>
+            
+          )}
+          
         </div>
-
-        <label className="block text-sm font-bold text-gray-900 mb-2">
-          Allergies, Diets, & Dislikes
-        </label>
-        <textarea
-          value={dietaryPrefs}
-          onChange={(e) => setDietaryPrefs(e.target.value)}
-          placeholder="E.g., I am highly allergic to peanuts. I am a strict vegan. I hate cilantro."
-          className="w-full h-40 p-4 border border-gray-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm resize-none text-gray-700"
-        />
-
-        <button 
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full mt-8 bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-md"
-        >
-          <Save className="w-5 h-5" />
-          {isSaving ? "Saving to Vault..." : "Save Profile"}
-        </button>
       </div>
-    </main>
+    </div>
   );
 }

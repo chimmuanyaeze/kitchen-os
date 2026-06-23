@@ -50,8 +50,6 @@ export default function ActiveCookingPage() {
     }
   }, [params.sessionId, router]);
 
-  
-
   // Handle moving to the next step
   const handleNextStep = async () => {
     setShowOriginal(false); // Reset to showing AI version whenever we switch sessions
@@ -111,7 +109,8 @@ export default function ActiveCookingPage() {
         body: JSON.stringify({ 
           command: commandInput, 
           currentStep: currentStepText,
-          dietaryProfile: dietaryPrefs 
+          dietaryProfile: dietaryPrefs,
+          scratchpad: session.modifications?.scratchpad || [] 
         }),
       });
 
@@ -124,15 +123,21 @@ export default function ActiveCookingPage() {
       }
 
       // 3. Magically rewrite the instruction on the screen
-     // 3. Save the new instruction to the database permanently
+     //  Save the new instruction to the database permanently
       if (aiResponse.updated_instruction) {
         // Create safe COPIES of the existing modifications so React doesn't get mad
         const currentMods = { ...(session.modifications || {}) };
         const aiSteps = { ...(currentMods.ai_steps || {}) };
+        const currentScratchpad = [...(currentMods.scratchpad || [])]; // Grab existing notes
         
         // Save the new AI text specifically for the step we are currently on
         aiSteps[session.current_step] = aiResponse.updated_instruction;
-        const newMods = { ...currentMods, ai_steps: aiSteps };
+        
+        if (aiResponse.new_scratchpad_note) {
+          currentScratchpad.push(aiResponse.new_scratchpad_note);
+        }
+
+        const newMods = { ...currentMods, ai_steps: aiSteps, scratchpad: currentScratchpad };
 
         // Push it to Supabase
         await supabase
@@ -152,6 +157,61 @@ export default function ActiveCookingPage() {
       setCommandInput(""); // Clear the input box
     }
   };
+
+  
+// --- THE AUTO-CLEANER ---
+  // This watches the current step. If you click "Next", it automatically checks the scratchpad.
+  useEffect(() => {
+    // 1. EARLY EXITS: These completely prevent infinite loops!
+    if (!session || !session.modifications?.scratchpad?.length) return;
+    
+    // If we already have an AI-modified version of this step, don't run it again.
+    if (session.modifications?.ai_steps?.[session.current_step]) return;
+
+    const autoCleanStep = async () => {
+      setIsProcessingAI(true);
+      const currentStepText = recipe?.recipe_steps.find((s) => s.step_number === session.current_step)?.instruction;
+
+      try {
+        // Silently send the step to the AI to be scrubbed
+        const res = await fetch("/api/ai/command", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            command: "Silently apply the scratchpad rules to this step.", 
+            currentStep: currentStepText,
+            dietaryProfile: dietaryPrefs,
+            scratchpad: session.modifications?.scratchpad 
+          }),
+        });
+
+        const aiResponse = await res.json();
+
+        // If the AI rewrites it, save it immediately!
+        if (aiResponse.updated_instruction) {
+          const currentMods = { ...(session.modifications || {}) };
+          const aiSteps = { ...(currentMods.ai_steps || {}) };
+          aiSteps[session.current_step] = aiResponse.updated_instruction;
+          
+          const newMods = { ...currentMods, ai_steps: aiSteps };
+
+          // Save to database
+          await supabase.from("cooking_sessions").update({ modifications: newMods }).eq("id", session.id);
+          
+          // 2. THE FUNCTIONAL UPDATE: Fixes the React warning perfectly
+          setSession(prev => prev ? { ...prev, modifications: newMods } : prev);
+          setShowOriginal(false);
+        }
+      } catch (error) {
+        console.error("Background AI sync failed:", error);
+      } finally {
+        setIsProcessingAI(false);
+      }
+    };
+
+    autoCleanStep();
+  }, [session, recipe, dietaryPrefs]); 
+
 
   if (loading || !recipe || !session) {
     return <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">Loading Kitchen...</div>;

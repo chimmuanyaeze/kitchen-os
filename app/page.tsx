@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
-import { Search, LogOut, Play, ChefHat, Clock, Trash2, Settings } from "lucide-react";
+import { Search, LogOut, Play, Trash2, Settings } from "lucide-react"; // ChefHat, Clock,
 import { Recipe, ActiveSessionWithRecipe } from "@/lib/types";
 import Link from "next/link";
-import Image from "next/image";
-
+//import Image from "next/image";
+import RecipeCard from "@/components/RecipeCard"; // <-- 1. IMPORT THE NEW CARD
 
 export default function Home() {
   const router = useRouter();
@@ -36,10 +36,12 @@ export default function Home() {
         .eq("status", "active")
         .order("current_step", { ascending: false });
 
-      // 3. Fetch all recipes for the "Popular" row
+      // 3. Fetch the top 10 Most Liked recipes!
       const { data: recipeData } = await supabase
         .from("recipes")
-        .select("*");
+        .select("*")
+        .order("likes_count", { ascending: false }) // <-- 2. SORT BY POPULARITY
+        .limit(10);
 
       if (sessionData) setActiveSessions(sessionData as unknown as ActiveSessionWithRecipe[]);
       if (recipeData) setRecipes(recipeData);
@@ -55,19 +57,17 @@ export default function Home() {
     router.push("/login");
   };
 
-  // Function to remove an abandoned meal from the Continue section
   const handleRemoveSession = async (sessionId: string) => {
-    // We change the status to 'abandoned' so it no longer shows up
     await supabase.from("cooking_sessions").update({ status: "abandoned" }).eq("id", sessionId);
     setActiveSessions((prev) => prev.filter((s) => s.id !== sessionId));
   };
 
   const handleSearch = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (searchQuery.trim()) {
-    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-  }
-};
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">Loading Kitchen OS...</div>;
@@ -106,18 +106,16 @@ export default function Home() {
         <button type="submit" className="hidden">Search</button>
       </form>
 
-      {/* Netflix Row 1: Continue Cooking (Only shows if there are active sessions) */}
+      {/* Netflix Row 1: Continue Cooking */}
       {activeSessions.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Continue Cooking</h2>
-          {/* The horizontal scroll container */}
           <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
             {activeSessions.map((activeSession) => (
               <div 
                 key={activeSession.id} 
                 className="relative min-w-70 bg-gray-900 text-white p-5 rounded-2xl shadow-md snap-start flex flex-col justify-between"
               >
-                {/* Ellipsis/Remove Button */}
                 <button 
                   onClick={() => handleRemoveSession(activeSession.id)}
                   className="absolute top-4 right-4 p-1.5 bg-gray-800 rounded-full hover:bg-red-500 transition-colors text-gray-400 hover:text-white"
@@ -151,35 +149,10 @@ export default function Home() {
         <h2 className="text-xl font-bold text-gray-900 mb-4">Popular Recipes</h2>
         <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
           {recipes.map((recipe) => (
-            <Link 
-              href={`/recipes/${recipe.id}`}
-              key={recipe.id} 
-              className="block min-w-60 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md snap-start"
-            >
-              
-              <div className="h-32 rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
-                {recipe.image_url ? (
-                  <Image 
-                  src={recipe.image_url} 
-                  alt={recipe.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 300px"
-                  priority
-                  className="object-cover"
-                />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">
-                    <ChefHat className="w-10 h-10" />
-                  </div>
-                )}
-              </div>
-
-              <h3 className="text-md font-bold text-gray-900 truncate">{recipe.title}</h3>
-              <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                <Clock className="w-3 h-3" />
-                <span>{recipe.prep_time_mins + recipe.cook_time_mins} mins</span>
-              </div>
-            </Link>
+            // 3. USE THE NEW CARD COMPONENT AND SET THE WIDTH
+            <div key={recipe.id} className="min-w-280px md:min-w-[320px] snap-start">
+              <RecipeCard recipe={recipe} currentUserId={user?.id} />
+            </div>
           ))}
         </div>
       </div>
@@ -188,31 +161,10 @@ export default function Home() {
       <div className="mb-8">
         <h2 className="text-xl font-bold text-gray-900 mb-4">African Dishes</h2>
         <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
-          {/* We are reusing the recipes array here just to show the layout, eventually you will filter this! */}
           {recipes.map((recipe) => (
-            <Link 
-              href={`/recipes/${recipe.id}`}
-              key={`african-${recipe.id}`} 
-              className="block min-w-60 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md snap-start"
-            >
-               <div className="h-32 rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
-                {recipe.image_url ? (
-                  <Image 
-                  src={recipe.image_url} 
-                  alt={recipe.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 300px"
-                  priority
-                  className="object-cover"
-                />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">
-                    <ChefHat className="w-10 h-10" />
-                  </div>
-                )}
-              </div>
-              <h3 className="text-md font-bold text-gray-900 truncate">{recipe.title}</h3>
-            </Link>
+            <div key={`african-${recipe.id}`} className="min-w-280px md:min-w-[320px] snap-start">
+              <RecipeCard recipe={recipe} currentUserId={user?.id} />
+            </div>
           ))}
         </div>
       </div>

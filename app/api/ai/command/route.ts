@@ -6,9 +6,10 @@ export async function POST(request: Request) {
   try {
     // 1. Unpack the data sent from the frontend
     const body = await request.json();
-    const { command, currentStep, dietaryProfile } = body;
 
-    if (!command || !currentStep || !dietaryProfile) {
+    const { command, currentStep, dietaryProfile, scratchpad } = body;
+
+    if (!command || !currentStep) {
       return NextResponse.json(
         { error: "Missing command or step context." }, 
         { status: 400 }
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Send it to our OpenAI Adapter
-    const aiResponse = await processKitchenCommand(command, currentStep, dietaryProfile);
+    const aiResponse = await processKitchenCommand(command, currentStep, dietaryProfile, scratchpad);
 
     // 3. Send the AI's intelligent response back to the frontend
     return NextResponse.json(aiResponse);

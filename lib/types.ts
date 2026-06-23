@@ -8,6 +8,8 @@ export interface Recipe {
   cook_time_mins: number;
   default_servings: number;
   image_url?: string;
+  overview?: string | null;
+  likes_count?: number;
 }
 
 // The shape of an Ingredient when attached to a Recipe
@@ -46,6 +48,7 @@ export interface SessionModifications {
   ai_steps?: {
     [stepNumber: number]: string; // This tells TS: "The keys are numbers (steps), the values are strings (text)"
   };
+  scratchpad?: string[];
 }
 
 // The shape of an Active Session joined with its Recipe details for the Home Page
