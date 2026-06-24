@@ -35,7 +35,7 @@ export default function RecipeCard({ recipe, currentUserId }: RecipeCardProps) {
     checkLikeStatus();
   }, [currentUserId, recipe.id]);
 
- const handleLikeToggle = async (e?: React.MouseEvent) => {
+  const handleLikeToggle = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault(); // Needed for RecipeCard to stop navigation
     
     if (!currentUserId) {
@@ -80,10 +80,12 @@ export default function RecipeCard({ recipe, currentUserId }: RecipeCardProps) {
   };
 
   return (
-    <Link href={`/recipes/${recipe.id}`} className="group block bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+    // Added dark:bg-gray-800 and dark:border-gray-700
+    <Link href={`/recipes/${recipe.id}`} className="group block bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden relative">
       
       {/* Image Header */}
-      <div className="w-full h-48 bg-slate-100 relative overflow-hidden">
+      {/* Added dark:bg-slate-800 for the empty image placeholder background */}
+      <div className="w-full h-48 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
         {recipe.image_url ? (
           <Image 
             src={recipe.image_url} 
@@ -94,7 +96,7 @@ export default function RecipeCard({ recipe, currentUserId }: RecipeCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300">
+          <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
             <ChefHat className="w-12 h-12" />
           </div>
         )}
@@ -105,10 +107,11 @@ export default function RecipeCard({ recipe, currentUserId }: RecipeCardProps) {
           title="like"
           onClick={handleLikeToggle}
           aria-label={isLiked ? "Unlike recipe" : "Like recipe"}
-          className="absolute top-4 right-4 p-3 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 active:scale-95 transition-all"
+          // Added dark:bg-gray-800/90 to make the button look sleek in dark mode
+          className="absolute top-4 right-4 p-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 active:scale-95 transition-all"
         >
           <Heart
-            className={`w-5 h-5 transition-colors ${isLiked ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+            className={`w-5 h-5 transition-colors ${isLiked ? "fill-red-500 text-red-500" : "text-gray-400 dark:text-gray-500"}`}
             aria-hidden="true"
           />
         </button>
@@ -117,21 +120,26 @@ export default function RecipeCard({ recipe, currentUserId }: RecipeCardProps) {
       {/* Card Content */}
       <div className="p-5">
         <div className="flex justify-between items-start gap-4 mb-2">
-          <h3 className="text-xl font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+          {/* Added dark:text-white and dark:group-hover:text-blue-400 */}
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
             {recipe.title}
           </h3>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-sm font-bold shrink-0">
+          {/* Added dark:bg-red-900/30 and dark:text-red-400 for the like counter tag */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm font-bold shrink-0 transition-colors">
             <Heart className="w-3.5 h-3.5 fill-current" />
             {likeCount}
           </div>
         </div>
         
-        {/* The New Overview Text */}
-        <p className="text-gray-500 text-sm line-clamp-2 mb-4 leading-relaxed">
+        {/* The Overview Text */}
+        {/* Added dark:text-gray-400 */}
+        <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mb-4 leading-relaxed transition-colors">
           {recipe.overview || "A delicious Kitchen OS recipe ready to be cooked."}
         </p>
 
-        <div className="flex items-center gap-4 text-sm text-gray-500 font-medium">
+        {/* Time footer */}
+        {/* Added dark:text-gray-400 */}
+        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 font-medium transition-colors">
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-blue-500" />
             <span>{recipe.prep_time_mins + recipe.cook_time_mins} mins total</span>

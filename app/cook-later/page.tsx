@@ -8,10 +8,9 @@ import { ArrowLeft, ChefHat, Clock, Trash2, Bookmark } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
-// We create a custom blueprint here because Supabase joins the two tables together
 interface SavedRecipeItem {
-  id: string; // The ID of the bookmark itself
-  recipes: Recipe; // The actual recipe data attached to the bookmark
+  id: string; 
+  recipes: Recipe; 
 }
 
 export default function CookLaterPage() {
@@ -29,7 +28,6 @@ export default function CookLaterPage() {
         return;
       }
 
-      // This is the magic Supabase syntax to join the saved_recipes table with the recipes table
       const { data, error } = await supabase
         .from("saved_recipes")
         .select(`
@@ -42,7 +40,6 @@ export default function CookLaterPage() {
       if (error) {
         console.error("Error fetching saved recipes:", error);
       } else if (data) {
-        // TypeScript needs a little help knowing the shape of the joined data
         setSavedItems(data as unknown as SavedRecipeItem[]);
       }
       
@@ -54,45 +51,52 @@ export default function CookLaterPage() {
   
 
   const handleRemoveBookmark = async (e: React.MouseEvent, bookmarkId: string) => {
-    // Prevent the click from also opening the recipe link
     e.preventDefault(); 
-    
-    // Instantly remove it from the screen for a snappy UI (Optimistic UI update)
     setSavedItems((prev) => prev.filter((item) => item.id !== bookmarkId));
-
-    // Then quietly delete it from the database in the background
     await supabase.from("saved_recipes").delete().eq("id", bookmarkId);
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
+    // Added dark:bg-gray-900 and w-full
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 w-full transition-colors duration-200">
+      
       {/* Top Header */}
-      <div className="bg-white px-6 py-4 flex items-center gap-4 sticky top-0 z-10 border-b border-gray-100">
+      {/* Added dark:bg-gray-800 and dark:border-gray-700 */}
+      <div className="bg-white dark:bg-gray-800 px-6 py-4 flex items-center gap-4 sticky top-0 z-10 border-b border-gray-100 dark:border-gray-700 transition-colors duration-200 w-full">
         <button 
           onClick={() => router.push("/")}
-          className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 transition-colors"
+          // Added dark:bg-gray-700 and dark:hover:bg-gray-600
+          className="p-2 bg-gray-50 dark:bg-gray-700 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
           aria-label="Go back"
           title="Go back"
         >
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
+          {/* Added dark:text-gray-300 */}
+          <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Cook Later</h1>
-          <p className="text-sm text-gray-500">Your personal recipe vault</p>
+          {/* Added dark:text-white */}
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Cook Later</h1>
+          {/* Added dark:text-gray-400 */}
+          <p className="text-sm text-gray-500 dark:text-gray-400">Your personal recipe vault</p>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="p-6 grow flex">
+      <div className="p-6 grow flex w-full">
         {loading ? (
-          <div className="text-center text-gray-500 mt-10 animate-pulse">Unlocking vault...</div>
+          // Added dark:text-gray-400
+          <div className="text-center text-gray-500 dark:text-gray-400 mt-10 animate-pulse mx-auto">Unlocking vault...</div>
         ) : savedItems.length === 0 ? (
-          <div className="text-center mt-24">
-            <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-200 shadow-inner">
-              <Bookmark className="w-10 h-10 text-blue-400" />
+          <div className="text-center mt-24 mx-auto w-full max-w-sm">
+            {/* Added dark:bg-blue-900/20 and dark:text-blue-500/40 */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-200 shadow-inner">
+              {/* Added dark:text-blue-500 */}
+              <Bookmark className="w-10 h-10 text-blue-400 dark:text-blue-500" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Your vault is empty</h2>
-            <p className="text-gray-500 text-sm mb-8 px-4 leading-relaxed">
+            {/* Added dark:text-white */}
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Your vault is empty</h2>
+            {/* Added dark:text-gray-400 */}
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 px-4 leading-relaxed">
               When you find a recipe you want to try, tap the bookmark icon to save it here for later.
             </p>
             <button 
@@ -103,15 +107,18 @@ export default function CookLaterPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          // Added w-full
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
             {savedItems.map((item) => (
               <Link 
                 href={`/recipes/${item.recipes.id}`}
                 key={item.id} 
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex items-center h-28 group"
+                // Added dark:bg-gray-800 and dark:border-gray-700
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all overflow-hidden flex items-center h-28 group w-full"
               >
                 {/* Recipe Image */}
-                <div className="w-28 h-full bg-slate-100 relative shrink-0">
+                {/* Added dark:bg-slate-800 */}
+                <div className="w-28 h-full bg-slate-100 dark:bg-slate-800 relative shrink-0">
                   {item.recipes.image_url ? (
                     <Image 
                       src={item.recipes.image_url} 
@@ -121,26 +128,30 @@ export default function CookLaterPage() {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    // Added dark:text-slate-600
+                    <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
                       <ChefHat className="w-8 h-8" />
                     </div>
                   )}
                 </div>
                 
                 {/* Recipe Info */}
-                <div className="p-4 grow flex flex-col min-w-0 justify-between">
+                <div className="p-4 grow flex flex-col min-w-0 justify-between h-full">
                   <div className="min-w-0 pr-4">
-                    <h3 className="text-md font-bold text-gray-900 truncate mb-1">{item.recipes.title}</h3>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                      <Clock className="w-3 h-3" />
+                    {/* Added dark:text-white */}
+                    <h3 className="text-md font-bold text-gray-900 dark:text-white truncate mb-1">{item.recipes.title}</h3>
+                    {/* Added dark:text-gray-400 */}
+                    <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                      <Clock className="w-3 h-3 text-blue-500" />
                       <span>{item.recipes.prep_time_mins + item.recipes.cook_time_mins} mins</span>
                     </div>
                   </div>
                   
                   {/* Quick Delete Button */}
+                  {/* Added dark:text-gray-500, dark:hover:text-red-400, and dark:hover:bg-red-950/30 */}
                   <button 
                     onClick={(e) => handleRemoveBookmark(e, item.id)}
-                    className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-100 md:opacity-0 group-hover:opacity-100 shrink-0"
+                    className="p-2 text-gray-300 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full transition-colors opacity-100 md:opacity-0 group-hover:opacity-100 shrink-0 self-end"
                     title="Remove from Cook Later"
                   >
                     <Trash2 className="w-5 h-5" />

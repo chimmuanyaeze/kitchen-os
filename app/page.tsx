@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
-import { Search, LogOut, Play, Trash2, Settings } from "lucide-react"; // ChefHat, Clock,
+import { Search, LogOut, Play, Trash2, Settings, ChefHat } from "lucide-react"; 
 import { Recipe, ActiveSessionWithRecipe } from "@/lib/types";
 import Link from "next/link";
-//import Image from "next/image";
-import RecipeCard from "@/components/RecipeCard"; // <-- 1. IMPORT THE NEW CARD
+import RecipeCard from "@/components/RecipeCard";
 
 export default function Home() {
   const router = useRouter();
@@ -17,10 +16,10 @@ export default function Home() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      // 1. Check if user is logged in
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push("/login");
@@ -28,7 +27,16 @@ export default function Home() {
       }
       setUser(session.user);
 
-      // 2. Fetch "Active" cooking sessions AND join the recipe title/times
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (profile) {
+        setUserRole(profile.role);
+      }
+
       const { data: sessionData } = await supabase
         .from("cooking_sessions")
         .select("*, recipes(title, prep_time_mins, cook_time_mins)")
@@ -36,11 +44,10 @@ export default function Home() {
         .eq("status", "active")
         .order("current_step", { ascending: false });
 
-      // 3. Fetch the top 10 Most Liked recipes!
       const { data: recipeData } = await supabase
         .from("recipes")
         .select("*")
-        .order("likes_count", { ascending: false }) // <-- 2. SORT BY POPULARITY
+        .order("likes_count", { ascending: false }) 
         .limit(10);
 
       if (sessionData) setActiveSessions(sessionData as unknown as ActiveSessionWithRecipe[]);
@@ -70,37 +77,56 @@ export default function Home() {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">Loading Kitchen OS...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors duration-200">Loading Kitchen OS...</div>;
   }
 
   return (
-    <main className="flex flex-col min-h-screen bg-gray-50 p-6 pb-24 overflow-x-hidden">
+    // Added dark:bg-gray-900, w-full, and transition classes
+    <main className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 p-6 pb-24 overflow-x-hidden w-full transition-colors duration-200">
+      
       {/* Header Section */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 w-full">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Hello, Chef 👋</h1>
-          <p className="text-sm text-gray-500">{user?.email}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Hello, Chef 👋</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
         </div>
+        
+        {/* We combined everything into just ONE flex container right here! */}
         <div className="flex items-center gap-2">
-          <Link href="/profile" className="p-2 text-gray-400 hover:text-blue-600 transition-colors" aria-label="Profile settings" title="Profile settings">
+          
+          {/* 👑 MASTER CHEF SECRET ENTRY (Only renders if user is an admin) */}
+          {userRole === "admin" && (
+            <Link 
+              href="/create" 
+              className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-sm"
+              title="Open Master Kitchen Vault"
+            >
+              <ChefHat className="w-4 h-4 text-amber-500" />
+              <span className="hidden sm:inline">Admin</span>
+            </Link>
+          )}
+
+          <Link href="/profile" className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Profile settings" title="Profile settings">
             <Settings className="w-5 h-5" />
           </Link>
-          <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-red-500 transition-colors" aria-label="Sign out" title="Sign out">
+          <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" aria-label="Sign out" title="Sign out">
             <LogOut className="w-5 h-5" />
           </button>
         </div>
       </div>
 
       {/* Ingredient Search Bar */}
-      <form onSubmit={handleSearch} className="relative mb-8">
+      <form onSubmit={handleSearch} className="relative mb-8 w-full">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-700" />
+          {/* Added dark:text-gray-400 */}
+          <Search className="h-5 w-5 text-gray-700 dark:text-gray-400" />
         </div>
+        {/* Added dark:bg-gray-800, dark:border-gray-700, dark:text-white, dark:placeholder-gray-500 */}
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white placeholder-gray-400 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+          className="block w-full pl-10 pr-3 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-colors duration-200"
           placeholder="What's in your kitchen? (e.g., eggs, rice)"
         />
         <button type="submit" className="hidden">Search</button>
@@ -108,17 +134,19 @@ export default function Home() {
 
       {/* Netflix Row 1: Continue Cooking */}
       {activeSessions.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Continue Cooking</h2>
+        <div className="mb-8 w-full">
+          {/* Added dark:text-white */}
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Continue Cooking</h2>
           <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
             {activeSessions.map((activeSession) => (
               <div 
                 key={activeSession.id} 
-                className="relative min-w-70 bg-gray-900 text-white p-5 rounded-2xl shadow-md snap-start flex flex-col justify-between"
+                // Added dark:bg-gray-800 dark:border-gray-700 border so it stands out against the dark background
+                className="relative min-w-[280px] bg-gray-900 dark:bg-gray-800 border border-transparent dark:border-gray-700 text-white p-5 rounded-2xl shadow-md snap-start flex flex-col justify-between transition-colors duration-200"
               >
                 <button 
                   onClick={() => handleRemoveSession(activeSession.id)}
-                  className="absolute top-4 right-4 p-1.5 bg-gray-800 rounded-full hover:bg-red-500 transition-colors text-gray-400 hover:text-white"
+                  className="absolute top-4 right-4 p-1.5 bg-gray-800 dark:bg-gray-700 rounded-full hover:bg-red-500 dark:hover:bg-red-600 transition-colors text-gray-400 hover:text-white"
                   title="Remove Session"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -145,12 +173,12 @@ export default function Home() {
       )}
 
       {/* Netflix Row 2: Popular Recipes */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Popular Recipes</h2>
+      <div className="mb-8 w-full">
+        {/* Added dark:text-white */}
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Popular Recipes</h2>
         <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
           {recipes.map((recipe) => (
-            // 3. USE THE NEW CARD COMPONENT AND SET THE WIDTH
-            <div key={recipe.id} className="min-w-280px md:min-w-[320px] snap-start">
+            <div key={recipe.id} className="min-w-[280px] md:min-w-[320px] snap-start">
               <RecipeCard recipe={recipe} currentUserId={user?.id} />
             </div>
           ))}
@@ -158,11 +186,12 @@ export default function Home() {
       </div>
 
       {/* Netflix Row 3: African Dishes (Placeholder) */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">African Dishes</h2>
+      <div className="mb-8 w-full">
+        {/* Added dark:text-white */}
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">African Dishes</h2>
         <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
           {recipes.map((recipe) => (
-            <div key={`african-${recipe.id}`} className="min-w-280px md:min-w-[320px] snap-start">
+            <div key={`african-${recipe.id}`} className="min-w-[280px] md:min-w-[320px] snap-start">
               <RecipeCard recipe={recipe} currentUserId={user?.id} />
             </div>
           ))}

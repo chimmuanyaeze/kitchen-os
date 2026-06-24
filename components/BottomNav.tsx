@@ -2,22 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Bookmark, User } from "lucide-react";
+import { Home, Compass, Bookmark, User, Refrigerator } from "lucide-react";
 
 export default function BottomNav() {
-  // This tells us which page the user is currently on so we can highlight the icon
   const pathname = usePathname();
 
   const navItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "Explore", path: "/explore", icon: Compass },
+    { name: "Pantry", path: "/pantry", icon: Refrigerator },
     { name: "Cook Later", path: "/cook-later", icon: Bookmark },
     { name: "Profile", path: "/profile", icon: User },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-safe">
-      <div className="flex justify-around items-center h-16 max-w-md mx-auto">
+    // Added dark:bg-gray-900 and dark:border-gray-800
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe transition-colors duration-200">
+      <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;
@@ -26,12 +27,14 @@ export default function BottomNav() {
             <Link 
               key={item.name} 
               href={item.path}
-              className={`flex flex-col items-center justify-center w-full h-full ${
-                isActive ? "text-blue-600" : "text-gray-500 hover:text-gray-900"
+              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
+                isActive 
+                  ? "text-blue-600 dark:text-blue-500" 
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               }`}
             >
-              <Icon className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">{item.name}</span>
+              <Icon className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium whitespace-nowrap">{item.name}</span>
             </Link>
           );
         })}

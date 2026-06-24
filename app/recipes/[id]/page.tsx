@@ -28,14 +28,13 @@ export default function RecipeDetailPage() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [hoveredStar, setHoveredStar] = useState(0); // For the interactive star animation
+  const [hoveredStar, setHoveredStar] = useState(0); 
 
   useEffect(() => {
     async function fetchRecipeDetails() {
 
       const { data: { session: authSession } } = await supabase.auth.getSession();
 
-      // Check if the recipe is already saved by this user
       if (authSession) {
         setCurrentUserId(authSession.user.id);
         const { data: savedData } = await supabase
@@ -45,11 +44,11 @@ export default function RecipeDetailPage() {
           .eq("recipe_id", params.id)
           .single();
 
-      if (savedData) {
-        setIsSaved(true);
+        if (savedData) {
+          setIsSaved(true);
+        }
       }
-    }
-      // We use the ID from the URL to fetch the recipe AND its connected ingredients/steps
+
       const { data, error } = await supabase
         .from("recipes")
         .select(`
@@ -66,12 +65,11 @@ export default function RecipeDetailPage() {
           )
         `)
         .eq("id", params.id)
-        .single(); // .single() tells Supabase we only expect ONE recipe back
+        .single(); 
 
       if (error) {
         console.error("Error fetching recipe:", error.message);
       } else {
-        // Sort the steps so they are always in the correct 1, 2, 3 order
         if (data.recipe_steps) {
           data.recipe_steps.sort((a:RecipeStep, b:RecipeStep) => a.step_number - b.step_number);
         }
@@ -85,16 +83,14 @@ export default function RecipeDetailPage() {
     }
   }, [params.id]);
 
- // 1. Check if the user already liked this recipe when the page loads
   useEffect(() => {
     const fetchLikeStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setCurrentUserId(session.user.id);
         
-        // If we have a recipe loaded, check the ledger
         if (recipe?.id) {
-          setLikeCount(recipe.likes_count || 0); // Set initial count
+          setLikeCount(recipe.likes_count || 0); 
           
           const { data } = await supabase
             .from("user_likes")
@@ -110,7 +106,6 @@ export default function RecipeDetailPage() {
     fetchLikeStatus();
   }, [recipe?.id, recipe?.likes_count]); 
 
-   // Fetch existing reviews
   useEffect(() => {
     const fetchReviews = async () => {
       if (!recipe?.id) return;
@@ -125,7 +120,6 @@ export default function RecipeDetailPage() {
     fetchReviews();
   }, [recipe?.id]);
 
-  // Handle saving a new review
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUserId) {
@@ -151,17 +145,16 @@ export default function RecipeDetailPage() {
       console.error("Failed to post review:", error);
       alert("There was an error saving your review.");
     } else {
-      // Instantly add the new review to the top of the list!
       setReviews([data, ...reviews]);
-      setComment(""); // Clear the text box
-      setRating(5);   // Reset stars to 5
+      setComment(""); 
+      setRating(5);   
     }
     setIsSubmittingReview(false);
   };
 
 
- const handleLikeToggle = async (e?: React.MouseEvent) => {
-    if (e) e.preventDefault(); // Needed for RecipeCard to stop navigation
+  const handleLikeToggle = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault(); 
     
     if (!currentUserId) {
       alert("Please log in to like recipes!");
@@ -171,17 +164,14 @@ export default function RecipeDetailPage() {
 
     setIsLiking(true);
 
-    // 1. THE MATH FIX: Prevent negative numbers!
     const newIsLiked = !isLiked;
     const newCount = newIsLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
 
-    // 2. Optimistic UI Update
     setIsLiked(newIsLiked);
     setLikeCount(newCount);
 
     try {
       if (newIsLiked) {
-        // 3. THE ERROR FIX: Force a crash if Supabase rejects it
         const { error: likeErr } = await supabase.from("user_likes").insert({ user_id: currentUserId, recipe_id: recipe.id });
         if (likeErr) throw likeErr;
 
@@ -195,7 +185,6 @@ export default function RecipeDetailPage() {
         if (recErr) throw recErr;
       }
     } catch (error) {
-      // 4. If anything fails, revert the math and the UI
       setIsLiked(!newIsLiked);
       setLikeCount(newIsLiked ? Math.max(0, newCount - 1) : newCount + 1);
       console.error("Database rejected the like:", error);
@@ -204,13 +193,10 @@ export default function RecipeDetailPage() {
     }
   };
 
-  // This function creates the cooking session and moves the user to the kitchen
-  // 1. This just opens the confirmation modal
   const triggerPreflight = () => {
     setShowPreflight(true);
   };
 
-  // 2. This runs ONLY when they click "Yes, I'm ready" inside the modal
   const confirmAndStartCooking = async () => {
     setStartingSession(true);
     
@@ -241,98 +227,114 @@ export default function RecipeDetailPage() {
   };
 
   const toggleSaveRecipe = async () => {
-  setIsSaving(true);
-  const { data: { session } } = await supabase.auth.getSession();
+    setIsSaving(true);
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session) {
-    router.push("/login");
-    return;
-  }
+    if (!session) {
+      router.push("/login");
+      return;
+    }
 
-  if (isSaved) {
-    // Remove the bookmark
-    await supabase
-      .from("saved_recipes")
-      .delete()
-      .eq("user_id", session.user.id)
-      .eq("recipe_id", recipe?.id);
-    setIsSaved(false);
-  } else {
-    // Add the bookmark
-    await supabase
-      .from("saved_recipes")
-      .insert({
-        user_id: session.user.id,
-        recipe_id: recipe?.id
-      });
-    setIsSaved(true);
-  }
-  setIsSaving(false);
-};
+    if (isSaved) {
+      await supabase
+        .from("saved_recipes")
+        .delete()
+        .eq("user_id", session.user.id)
+        .eq("recipe_id", recipe?.id);
+      setIsSaved(false);
+    } else {
+      await supabase
+        .from("saved_recipes")
+        .insert({
+          user_id: session.user.id,
+          recipe_id: recipe?.id
+        });
+      setIsSaved(true);
+    }
+    setIsSaving(false);
+  };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">Loading Recipe...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors duration-200">Loading Recipe...</div>;
   }
 
   if (!recipe) {
     return <div className="p-6 text-center text-red-500">Recipe not found.</div>;
   }
 
- 
   return (
-    <main className="min-h-screen bg-gray-50 pb-24">
+    // Added dark:bg-gray-900, w-full, and transition smoothers
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 w-full transition-colors duration-200">
+      
       {/* Header Image Placeholder & Back Button */}
-      <div className="relative h-64 bg-slate-200">
+      {/* Added dark:bg-slate-800 */}
+      <div className="relative h-64 bg-slate-200 dark:bg-slate-800 w-full transition-colors duration-200">
+        {/* Added dark:bg-gray-800/80 and dark:hover:bg-gray-700 */}
         <button
           type="button"
           title="Go back"
           onClick={() => router.back()}
-          className="absolute top-4 left-4 p-2 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors"
+          className="absolute top-4 left-4 p-2 bg-white/80 dark:bg-gray-800/80 rounded-full shadow-sm hover:bg-white dark:hover:bg-gray-700 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 text-gray-900" />
+          {/* Added dark:text-white */}
+          <ArrowLeft className="w-5 h-5 text-gray-900 dark:text-white" />
         </button>
       </div>
 
-      <div className="p-6 -mt-6 relative bg-gray-50 rounded-t-2xl">
-        {/* Title and Quick Actions */}
-        {/* Dynamic Like Button */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleLikeToggle}
-                aria-label={isLiked ? "Unlike recipe" : "Like recipe"}
-                className={`p-3 bg-white rounded-full shadow-sm transition-all hover:scale-110 active:scale-95 border ${
-                  isLiked ? "border-red-100" : "border-gray-100"
-                }`}
-                title={isLiked ? "Remove from favorites" : "Add to favorites"}
-              >
-                <Heart 
-                  className={`w-5 h-5 transition-colors ${
-                    isLiked ? "fill-red-500 text-red-500" : "text-gray-400 hover:text-red-500"
-                  }`} 
-                  aria-hidden="true" 
-                />
-              </button>
-              
-              {/* Optional: Show the count next to the button */}
-              <span className="text-sm font-bold text-gray-500">
-                {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
-              </span>
-            </div>
+      {/* Main Content Layout Block */}
+      {/* Added dark:bg-gray-900, w-full, max-w-4xl, and mx-auto so it perfectly scales and centers on desktop */}
+      <div className="p-6 -mt-6 relative bg-gray-50 dark:bg-gray-900 rounded-t-2xl w-full max-w-4xl mx-auto transition-colors duration-200">
+        
+        {/* Title Block Banner */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 w-full">
+          <div>
+            {/* Added dark:text-white */}
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 leading-tight">{recipe.title}</h1>
+            {/* Added dark:text-gray-400 */}
+            <p className="text-gray-600 dark:text-gray-400 text-sm">{recipe.overview || "A delicious recipe curated by Kitchen OS."}</p>
+          </div>
+
+          {/* Dynamic Like Button Row */}
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Added dark:bg-gray-800, dark:border-gray-700, and conditional border matching */}
+            <button
+              onClick={handleLikeToggle}
+              aria-label={isLiked ? "Unlike recipe" : "Like recipe"}
+              className={`p-3 bg-white dark:bg-gray-800 rounded-full shadow-sm transition-all hover:scale-110 active:scale-95 border ${
+                isLiked ? "border-red-100 dark:border-red-900/50" : "border-gray-100 dark:border-gray-700"
+              }`}
+              title={isLiked ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart 
+                className={`w-5 h-5 transition-colors ${
+                  isLiked ? "fill-red-500 text-red-500" : "text-gray-400 dark:text-gray-500 hover:text-red-500"
+                }`} 
+                aria-hidden="true" 
+              />
+            </button>
+            
+            {/* Added dark:text-gray-400 */}
+            <span className="text-sm font-bold text-gray-500 dark:text-gray-400 transition-colors">
+              {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
+            </span>
+          </div>
+        </div>
 
         {/* Stats Row */}
-        <div className="flex gap-6 mb-8 text-sm text-gray-600 border-b border-gray-200 pb-6">
+        {/* Added dark:text-gray-400, dark:border-gray-800 */}
+        <div className="flex gap-6 mb-8 text-sm text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-800 pb-6 w-full transition-colors">
           <div className="flex items-center gap-1">
-            <Clock className="w-4 h-4" />
+            <Clock className="w-4 h-4 text-blue-500" />
             <span>{recipe.prep_time_mins + recipe.cook_time_mins} mins</span>
           </div>
           <div className="flex items-center gap-1">
-            <Users className="w-4 h-4" />
+            <Users className="w-4 h-4 text-blue-500" />
             <span>{recipe.default_servings} servings</span>
           </div>
         </div>
 
-        {/* Action Buttons */}
-       <div className="flex gap-3 mb-8">
+        {/* Action Buttons Row */}
+        <div className="flex gap-3 mb-8 w-full">
           <button 
             onClick={triggerPreflight}
             disabled={startingSession}
@@ -343,74 +345,92 @@ export default function RecipeDetailPage() {
           </button>
           
           {/* Dynamic Save Later Button */}
+          {/* Added dark:bg-gray-800, dark:border-gray-700, dark:text-white, dark:hover:bg-gray-700 */}
           <button 
             onClick={toggleSaveRecipe}
             disabled={isSaving}
             className={`flex-1 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors shadow-sm border ${
               isSaved 
-                ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" 
-                : "bg-white border-gray-200 text-gray-900 hover:bg-gray-50"
+                ? "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-400 hover:bg-blue-100" 
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
           >
-            <BookmarkPlus className={`w-5 h-5 ${isSaved ? "text-blue-600 fill-current" : "text-gray-500"}`} />
+            <BookmarkPlus className={`w-5 h-5 ${isSaved ? "text-blue-600 dark:text-blue-400 fill-current" : "text-gray-500 dark:text-gray-400"}`} />
             {isSaving ? "Saving..." : isSaved ? "Saved" : "Save Later"}
           </button>
         </div>
 
         {/* Ingredients Section */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Ingredients</h2>
-          <ul className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="mb-8 w-full">
+          {/* Added dark:text-white */}
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Ingredients</h2>
+          {/* Added dark:bg-gray-800, dark:border-gray-700 */}
+          <ul className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden w-full transition-colors duration-200">
             {recipe.recipe_ingredients.map((item, idx: number) => (
-              <li key={idx} className="flex justify-between items-center p-4 border-b border-gray-50 last:border-0">
-                <span className="text-gray-900 font-medium">{item.ingredients.name}</span>
-                <span className="text-gray-500 text-sm">{item.quantity} {item.unit}</span>
+              // Added dark:border-gray-700/50
+              <li key={idx} className="flex justify-between items-center p-4 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+                {/* Added dark:text-gray-200 */}
+                <span className="text-gray-900 dark:text-gray-200 font-medium">{item.ingredients.name}</span>
+                {/* Added dark:text-gray-400 */}
+                <span className="text-gray-500 dark:text-gray-400 text-sm">{item.quantity} {item.unit}</span>
               </li>
             ))}
           </ul>
         </div>
 
         {/* Steps Preview Section */}
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Steps Preview</h2>
-          <div className="space-y-4">
+        <div className="mb-8 w-full">
+          {/* Added dark:text-white */}
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Steps Preview</h2>
+          <div className="space-y-4 w-full">
             {recipe.recipe_steps.map((step) => (
-              <div key={step.step_number} className="flex gap-4">
-                <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+              <div key={step.step_number} className="flex gap-4 w-full">
+                {/* Added dark:bg-blue-900/30, dark:text-blue-400 */}
+                <div className="shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-sm transition-colors">
                   {step.step_number}
                 </div>
-                <p className="text-gray-700 pt-1 leading-relaxed">{step.instruction}</p>
+                {/* Added dark:text-gray-300 */}
+                <p className="text-gray-700 dark:text-gray-300 pt-1 leading-relaxed grow">{step.instruction}</p>
               </div>
             ))}
           </div>
         </div>
 
       </div>
+
       {/* Pre-Flight Checklist Modal Overlay */}
       {showPreflight && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm transition-opacity">
-          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Pre-Flight Checklist</h3>
-            <p className="text-gray-500 text-sm mb-4">
+        // Added dark:bg-gray-950/80
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-sm transition-opacity">
+          {/* Added dark:bg-gray-900, dark:border-gray-800 */}
+          <div className="bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200 transition-colors">
+            {/* Added dark:text-white */}
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Pre-Flight Checklist</h3>
+            {/* Added dark:text-gray-400 */}
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
               Do you have all the ingredients ready on your counter?
             </p>
             
             {/* Display the ingredients list again for quick checking */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto border border-gray-100 text-sm">
+            {/* Added dark:bg-gray-800/50, dark:border-gray-700 */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 max-h-48 overflow-y-auto border border-gray-100 dark:border-gray-700 text-sm transition-colors">
               <ul className="space-y-2">
                 {recipe.recipe_ingredients.map((item, idx) => (
-                  <li key={idx} className="flex justify-between text-gray-700">
+                  // Added dark:text-gray-300
+                  <li key={idx} className="flex justify-between text-gray-700 dark:text-gray-300">
                     <span className="font-medium">{item.ingredients.name}</span>
-                    <span className="text-gray-500">{item.quantity} {item.unit}</span>
+                    {/* Added dark:text-gray-500 */}
+                    <span className="text-gray-500 dark:text-gray-500">{item.quantity} {item.unit}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             <div className="flex gap-3">
+              {/* Added dark:bg-gray-800, dark:text-white, dark:hover:bg-gray-700 */}
               <button 
                 onClick={() => setShowPreflight(false)}
-                className="flex-1 bg-gray-100 text-gray-900 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white py-3 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
                 Not Yet
               </button>
@@ -427,17 +447,22 @@ export default function RecipeDetailPage() {
       )}
 
       {/* --- REVIEWS SECTION --- */}
-      <div className="max-w-4xl mx-auto px-6 pb-24">
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center gap-2">
+      {/* Added max-w-4xl, mx-auto, px-6, w-full */}
+      <div className="max-w-4xl mx-auto px-6 pb-24 w-full">
+        {/* Added dark:bg-gray-800, dark:border-gray-700 */}
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 mt-8 transition-colors duration-200 w-full">
+          {/* Added dark:text-white */}
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 flex items-center gap-2">
             <Star className="w-6 h-6 text-amber-400 fill-current" />
             Chef Reviews ({reviews.length})
           </h2>
 
           {/* 1. The Input Form (Only show if logged in) */}
           {currentUserId ? (
-            <form onSubmit={handleSubmitReview} className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-              <h3 className="font-bold text-gray-900 mb-4">Leave a Review</h3>
+            // Added dark:bg-gray-900/50, dark:border-gray-700
+            <form onSubmit={handleSubmitReview} className="mb-10 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 transition-colors w-full">
+              {/* Added dark:text-white */}
+              <h3 className="font-bold text-gray-900 dark:text-white mb-4">Leave a Review</h3>
               
               {/* Interactive Star Selector */}
               <div className="flex gap-1 mb-4">
@@ -455,18 +480,19 @@ export default function RecipeDetailPage() {
                       className={`w-8 h-8 transition-colors ${
                         star <= (hoveredStar || rating) 
                           ? "fill-amber-400 text-amber-400" 
-                          : "text-gray-300"
+                          : "text-gray-300 dark:text-gray-600"
                       }`} 
                     />
                   </button>
                 ))}
               </div>
 
+              {/* Added dark:bg-gray-800, dark:border-gray-700, dark:text-white, dark:placeholder-gray-500 */}
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="What did you think of this recipe? (Optional)"
-                className="w-full p-4 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none h-24 mb-4 text-gray-900 placeholder:text-gray-400"
+                className="w-full p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none h-24 mb-4 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
               
               <button
@@ -478,34 +504,41 @@ export default function RecipeDetailPage() {
               </button>
             </form>
           ) : (
-            <div className="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100 text-center">
-              <p className="text-gray-500">Please log in to share your thoughts.</p>
+            // Added dark:bg-gray-900/50, dark:border-gray-700, dark:text-gray-400
+            <div className="mb-10 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 text-center transition-colors w-full">
+              <p className="text-gray-500 dark:text-gray-400">Please log in to share your thoughts.</p>
             </div>
           )}
 
           {/* 2. The Comments List */}
-          <div className="space-y-6">
+          {/* Added dark:divide-gray-700 */}
+          <div className="space-y-6 divide-y divide-gray-100 dark:divide-gray-700 w-full">
             {reviews.length === 0 ? (
-              <p className="text-gray-500 text-center italic py-4">No reviews yet. Be the first to rate this recipe!</p>
+              // Added dark:text-gray-400
+              <p className="text-gray-500 dark:text-gray-400 text-center italic py-4">No reviews yet. Be the first to rate this recipe!</p>
             ) : (
               reviews.map((review) => (
-                <div key={review.id} className="border-b border-gray-100 pb-6 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-2 mb-2">
+                // Added dark:border-gray-700/50 and pt-6 for correct division formatting
+                <div key={review.id} className="border-b border-gray-100 dark:border-gray-700/50 pb-6 last:border-0 last:pb-0 pt-6 first:pt-0 w-full transition-colors">
+                  <div className="flex items-center gap-2 mb-2 w-full">
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star 
                           key={star} 
-                          className={`w-4 h-4 ${star <= review.rating ? "fill-amber-400 text-amber-400" : "text-gray-200"}`} 
+                          className={`w-4 h-4 ${star <= review.rating ? "fill-amber-400 text-amber-400" : "text-gray-200 dark:text-gray-600"}`} 
                         />
                       ))}
                     </div>
-                    <span className="text-sm font-medium text-gray-900 ml-2">A Fellow Chef</span>
-                    <span className="text-xs text-gray-400 ml-auto">
+                    {/* Added dark:text-white */}
+                    <span className="text-sm font-medium text-gray-900 dark:text-white ml-2">A Fellow Chef</span>
+                    {/* Added dark:text-gray-500 */}
+                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
                       {new Date(review.created_at).toLocaleDateString()}
                     </span>
                   </div>
                   {review.comment && (
-                    <p className="text-gray-600 leading-relaxed mt-2">{review.comment}</p>
+                    // Added dark:text-gray-300
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed mt-2">{review.comment}</p>
                   )}
                 </div>
               ))

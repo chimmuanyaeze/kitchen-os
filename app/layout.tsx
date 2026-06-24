@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
-
-
+import Navbar from "@/components/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,14 +28,31 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="flex flex-col min-h-screen bg-gray-50 pb-16">
-        {/* The children represent whatever page we are currently looking at */}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark')
+                } else {
+                  document.documentElement.classList.remove('dark')
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      
+      {/* REMOVED: bg-gray-50 and dark:bg-gray-900. 
+          Now globals.css will handle the background color flawlessly! */}
+      <body className="flex flex-col min-h-screen text-gray-900 dark:text-gray-100 pb-16 md:pb-0 md:pt-16 transition-colors duration-200">
+        <Navbar />
         <div className="flex-grow">
           {children}
         </div>
-        
-        {/* Our new navigation bar sits at the bottom of the layout */}
         <BottomNav />
       </body>
     </html>

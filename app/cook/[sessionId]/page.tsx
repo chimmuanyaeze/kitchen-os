@@ -123,7 +123,7 @@ export default function ActiveCookingPage() {
       }
 
       // 3. Magically rewrite the instruction on the screen
-     //  Save the new instruction to the database permanently
+      //  Save the new instruction to the database permanently
       if (aiResponse.updated_instruction) {
         // Create safe COPIES of the existing modifications so React doesn't get mad
         const currentMods = { ...(session.modifications || {}) };
@@ -214,7 +214,7 @@ export default function ActiveCookingPage() {
 
 
   if (loading || !recipe || !session) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-900 text-white">Loading Kitchen...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-white transition-colors duration-200">Loading Kitchen...</div>;
   }
 
   // Find the exact instruction for the step the user is currently on
@@ -226,20 +226,21 @@ export default function ActiveCookingPage() {
   const displayText = aiModifiedInstruction && !showOriginal 
     ? aiModifiedInstruction 
     : currentStepData?.instruction;
+
   return (
-    <main className="flex flex-col min-h-screen bg-gray-900 text-white">
+    <main className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
       {/* Top Header */}
-      <div className="flex justify-between items-center p-6 border-b border-gray-800">
+      <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-800 transition-colors duration-200">
         <button
           type="button"
           title="Go back"
           aria-label="Go back"
           onClick={() => router.push("/")}
-          className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors"
+          className="p-2 bg-gray-200 dark:bg-gray-800 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <span className="text-sm font-medium text-gray-400">
+        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
           Step {session.current_step} of {recipe.recipe_steps.length}
         </span>
         <div className="w-9"></div> {/* Empty spacer for alignment */}
@@ -256,7 +257,7 @@ export default function ActiveCookingPage() {
           {aiModifiedInstruction && (
             <button
               onClick={() => setShowOriginal(!showOriginal)}
-              className="mt-6 flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full transition-colors bg-gray-800 text-blue-400 hover:bg-gray-700"
+              className="mt-6 flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full transition-colors bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-gray-700"
             >
               {showOriginal ? "✨ Switch to AI Adapted Version" : "📖 View Original Recipe Step"}
             </button>
@@ -266,9 +267,9 @@ export default function ActiveCookingPage() {
         {/* The AI Command Center */}
         <form 
           onSubmit={handleAICommand} 
-          className="mt-8 w-full max-w-md flex items-center bg-gray-800 rounded-full p-1 border border-gray-700 shadow-xl"
+          className="mt-8 w-full max-w-md flex items-center bg-white dark:bg-gray-800 rounded-full p-1 border border-gray-200 dark:border-gray-700 shadow-xl transition-colors duration-200"
         >
-          <div className="p-3 text-blue-500">
+          <div className="p-3 text-blue-600 dark:text-blue-500">
             <Mic className="w-5 h-5" />
           </div>
           <input
@@ -277,12 +278,12 @@ export default function ActiveCookingPage() {
             onChange={(e) => setCommandInput(e.target.value)}
             disabled={isProcessingAI}
             placeholder="E.g., I just added chopped carrots..."
-            className="grow bg-transparent text-white placeholder-gray-500 focus:outline-none p-2 text-sm"
+            className="grow bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none p-2 text-sm"
           />
           <button 
             type="submit"
             disabled={isProcessingAI || !commandInput.trim()}
-            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-500 disabled:opacity-50 disabled:bg-gray-700 transition-colors"
+            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-500 disabled:opacity-50 disabled:bg-gray-400 dark:disabled:bg-gray-700 transition-colors"
           >
             {isProcessingAI ? (
               <span className="animate-pulse text-xs font-bold px-1">...</span>
@@ -294,18 +295,18 @@ export default function ActiveCookingPage() {
       </div>
 
       {/* Bottom Controls */}
-      <div className="flex gap-4 p-6 bg-gray-950 pb-safe">
+      <div className="flex gap-4 p-6 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-transparent pb-safe transition-colors duration-200">
        <button 
           onClick={handlePrevStep}
           disabled={session.current_step === 1}
-          className="w-1/3 bg-gray-800 py-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-700 disabled:opacity-50 transition-colors"
+          className="w-1/3 bg-gray-100 dark:bg-gray-800 py-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-white disabled:opacity-50 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
           Previous
         </button>
         <button 
           onClick={handleNextStep}
-          className="w-2/3 bg-white text-gray-900 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
+          className="w-2/3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
         >
           {session.current_step === recipe.recipe_steps.length ? "Finish Meal" : "Next Step"}
           {session.current_step !== recipe.recipe_steps.length && <ChevronRight className="w-5 h-5" />}
@@ -314,23 +315,23 @@ export default function ActiveCookingPage() {
       
       {/* Completion Celebration Modal */}
       {showCompletionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md transition-opacity">
-          <div className="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-3xl p-8 shadow-2xl text-center animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-md transition-opacity">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 w-full max-w-sm rounded-3xl p-8 shadow-2xl text-center animate-in fade-in zoom-in duration-300">
             
             {/* Celebratory Icon */}
-            <div className="w-24 h-24 bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner shadow-blue-500/20">
+            <div className="w-24 h-24 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner shadow-blue-500/20">
               <ChefHat className="w-12 h-12" />
             </div>
             
-            <h3 className="text-3xl font-bold text-white mb-3">Bon Appétit!</h3>
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Bon Appétit!</h3>
             
-            <p className="text-gray-400 text-sm mb-8 leading-relaxed">
-              You&apos;ve successfully conquered <span className="text-white font-medium">{recipe.title}</span>. Time to plate up and enjoy your masterpiece.
+            <p className="text-gray-500 dark:text-gray-400 text-sm mb-8 leading-relaxed">
+              You&apos;ve successfully conquered <span className="text-gray-900 dark:text-white font-medium">{recipe.title}</span>. Time to plate up and enjoy your masterpiece.
             </p>
             
             <button
               onClick={() => router.push("/")}
-              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-500 active:scale-95 transition-all shadow-lg shadow-blue-900/50"
+              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-500 active:scale-95 transition-all shadow-lg shadow-blue-900/20 dark:shadow-blue-900/50"
             >
               Return to Dashboard
             </button>
