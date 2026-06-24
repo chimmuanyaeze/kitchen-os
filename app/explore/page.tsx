@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { Recipe } from "@/lib/types";
 import RecipeCard from "@/components/RecipeCard";
+import SkeletonLoader from "@/components/SkeletonLoader";
 
 export default function ExplorePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -41,11 +42,8 @@ export default function ExplorePage() {
       <p className="text-gray-600 dark:text-gray-400 mb-6">Find your next meal from our database.</p>
 
       {loading ? (
-        // Added dark:text-gray-400
-        <div className="text-center text-gray-500 dark:text-gray-400 mt-10 text-sm font-medium animate-pulse mx-auto">
-          Fetching from Vault...
-        </div>
-      ) : (
+    <SkeletonLoader />
+  ) : (
         // Added w-full
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
           

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Clock, Users, ArrowLeft, Heart, BookmarkPlus, Play, Star} from "lucide-react";
 import { RecipeDetail, RecipeStep, Review } from "@/lib/types";
+import SkeletonLoader from "@/components/SkeletonLoader";
 
 export default function RecipeDetailPage() {
   const params = useParams();
@@ -254,9 +255,7 @@ export default function RecipeDetailPage() {
     setIsSaving(false);
   };
 
-  if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors duration-200">Loading Recipe...</div>;
-  }
+  if (loading) return <SkeletonLoader />;
 
   if (!recipe) {
     return <div className="p-6 text-center text-red-500">Recipe not found.</div>;

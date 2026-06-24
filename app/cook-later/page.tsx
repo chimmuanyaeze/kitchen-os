@@ -7,6 +7,7 @@ import { Recipe } from "@/lib/types";
 import { ArrowLeft, ChefHat, Clock, Trash2, Bookmark } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import SkeletonLoader from "@/components/SkeletonLoader";
 
 interface SavedRecipeItem {
   id: string; 
@@ -84,9 +85,8 @@ export default function CookLaterPage() {
       {/* Main Content Area */}
       <div className="p-6 grow flex w-full">
         {loading ? (
-          // Added dark:text-gray-400
-          <div className="text-center text-gray-500 dark:text-gray-400 mt-10 animate-pulse mx-auto">Unlocking vault...</div>
-        ) : savedItems.length === 0 ? (
+              <SkeletonLoader />
+            ) : savedItems.length === 0 ? (
           <div className="text-center mt-24 mx-auto w-full max-w-sm">
             {/* Added dark:bg-blue-900/20 and dark:text-blue-500/40 */}
             <div className="bg-blue-50 dark:bg-blue-900/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-200 shadow-inner">

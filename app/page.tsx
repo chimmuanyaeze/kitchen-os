@@ -8,6 +8,7 @@ import { Search, Play, Trash2, ChefHat} from "lucide-react";
 import { Recipe, ActiveSessionWithRecipe } from "@/lib/types";
 import Link from "next/link";
 import RecipeCard from "@/components/RecipeCard";
+import SkeletonLoader from "@/components/SkeletonLoader";
 
 export default function Home() {
   const router = useRouter();
@@ -73,9 +74,7 @@ export default function Home() {
     }
   };
 
-  if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors duration-200">Loading Kitchen OS...</div>;
-  }
+  if (loading) return <SkeletonLoader />;
 
   return (
     // Added dark:bg-gray-900, w-full, and transition classes

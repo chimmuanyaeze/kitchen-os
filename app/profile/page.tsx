@@ -95,7 +95,9 @@ export default function ProfilePage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Account Active</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{userEmail}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 break-all sm:truncate" title={userEmail || ""}>
+                {userEmail}
+              </p>
             </div>
           </div>
         </div>

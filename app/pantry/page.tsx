@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { Trash2, Plus, PackageOpen } from "lucide-react";
 import { PantryItem } from "@/lib/types";
+import SkeletonLoader from "@/components/SkeletonLoader";
 
 export default function PantryPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -87,10 +88,8 @@ export default function PantryPage() {
     await supabase.from("pantry_items").delete().eq("id", id);
   };
 
-  if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors duration-200">Loading Pantry...</div>;
-  }
-
+  if (loading) return <SkeletonLoader />;
+  
   if (!user) {
     return <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 transition-colors duration-200">Please log in to view your pantry.</div>;
   }
