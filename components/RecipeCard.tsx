@@ -83,16 +83,16 @@ export default function RecipeCard({ recipe, currentUserId }: RecipeCardProps) {
     // Added dark:bg-gray-800 and dark:border-gray-700
     <Link href={`/recipes/${recipe.id}`} className="group block bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden relative">
       
-      {/* Image Header */}
-      {/* Added dark:bg-slate-800 for the empty image placeholder background */}
-      <div className="w-full h-48 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
+    {/* Image Header */}
+      {/* 🚀 CHANGED: Removed h-48 and replaced it with aspect-video so it scales perfectly */}
+      <div className="w-full aspect-video bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
         {recipe.image_url ? (
           <Image 
             src={recipe.image_url} 
             alt={recipe.title}
             fill
             priority
-            sizes="(max-width: 768px) 100vw, 33vw"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
@@ -107,7 +107,6 @@ export default function RecipeCard({ recipe, currentUserId }: RecipeCardProps) {
           title="like"
           onClick={handleLikeToggle}
           aria-label={isLiked ? "Unlike recipe" : "Like recipe"}
-          // Added dark:bg-gray-800/90 to make the button look sleek in dark mode
           className="absolute top-4 right-4 p-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full shadow-sm hover:scale-110 active:scale-95 transition-all"
         >
           <Heart

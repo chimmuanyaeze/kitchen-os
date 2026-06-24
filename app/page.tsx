@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
-import { Search, LogOut, Play, Trash2, Settings, ChefHat } from "lucide-react"; 
+import { Search, Play, Trash2, ChefHat} from "lucide-react"; 
 import { Recipe, ActiveSessionWithRecipe } from "@/lib/types";
 import Link from "next/link";
 import RecipeCard from "@/components/RecipeCard";
@@ -59,10 +59,7 @@ export default function Home() {
     fetchDashboardData();
   }, [router]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+ 
 
   const handleRemoveSession = async (sessionId: string) => {
     await supabase.from("cooking_sessions").update({ status: "abandoned" }).eq("id", sessionId);
@@ -84,16 +81,14 @@ export default function Home() {
     // Added dark:bg-gray-900, w-full, and transition classes
     <main className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 p-6 pb-24 overflow-x-hidden w-full transition-colors duration-200">
       
-      {/* Header Section */}
+     {/* Header Section */}
       <div className="flex justify-between items-center mb-6 w-full">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Hello, Chef 👋</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
         </div>
         
-        {/* We combined everything into just ONE flex container right here! */}
-        <div className="flex items-center gap-2">
-          
+        <div className="flex items-center gap-3">
           {/* 👑 MASTER CHEF SECRET ENTRY (Only renders if user is an admin) */}
           {userRole === "admin" && (
             <Link 
@@ -106,12 +101,6 @@ export default function Home() {
             </Link>
           )}
 
-          <Link href="/profile" className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" aria-label="Profile settings" title="Profile settings">
-            <Settings className="w-5 h-5" />
-          </Link>
-          <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" aria-label="Sign out" title="Sign out">
-            <LogOut className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
@@ -141,8 +130,8 @@ export default function Home() {
             {activeSessions.map((activeSession) => (
               <div 
                 key={activeSession.id} 
-                // Added dark:bg-gray-800 dark:border-gray-700 border so it stands out against the dark background
-                className="relative min-w-[280px] bg-gray-900 dark:bg-gray-800 border border-transparent dark:border-gray-700 text-white p-5 rounded-2xl shadow-md snap-start flex flex-col justify-between transition-colors duration-200"
+                // 🚀 CHANGED: Now uses 85vw on mobile, scaling up cleanly to fixed widths on larger screens 
+                className="relative w-[85vw] sm:w-[320px] md:w-[360px] lg:w-[400px] shrink-0 bg-gray-900 dark:bg-gray-800 border border-transparent dark:border-gray-700 text-white p-5 rounded-2xl shadow-md snap-start flex flex-col justify-between transition-all duration-200"
               >
                 <button 
                   onClick={() => handleRemoveSession(activeSession.id)}
@@ -178,7 +167,7 @@ export default function Home() {
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Popular Recipes</h2>
         <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
           {recipes.map((recipe) => (
-            <div key={recipe.id} className="min-w-[280px] md:min-w-[320px] snap-start">
+            <div key={recipe.id} className="w-[85vw] sm:w-[320px] md:w-[360px] lg:w-[400px] shrink-0 snap-start transition-all duration-200">
               <RecipeCard recipe={recipe} currentUserId={user?.id} />
             </div>
           ))}
@@ -191,7 +180,7 @@ export default function Home() {
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">African Dishes</h2>
         <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
           {recipes.map((recipe) => (
-            <div key={`african-${recipe.id}`} className="min-w-[280px] md:min-w-[320px] snap-start">
+            <div key={`african-${recipe.id}`} className="w-[85vw] sm:w-[320px] md:w-[360px] lg:w-[400px] shrink-0 snap-start transition-all duration-200">
               <RecipeCard recipe={recipe} currentUserId={user?.id} />
             </div>
           ))}

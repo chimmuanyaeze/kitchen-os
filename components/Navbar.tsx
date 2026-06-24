@@ -15,8 +15,8 @@ export default function Navbar() {
   ];
 
   return (
-    // Added dark:bg-gray-900 and dark:border-gray-800
-    <nav className="hidden md:block fixed top-0 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 py-4 z-50 shadow-sm transition-colors duration-200">
+    // Added 'w-full' and boosted to z-[100]
+    <nav className="hidden md:block fixed top-0 left-0 right-0 w-full bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-6 py-4 z-[100] shadow-sm transition-colors duration-200">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         
         {/* Logo */}

@@ -16,8 +16,8 @@ export default function BottomNav() {
   ];
 
   return (
-    // Added dark:bg-gray-900 and dark:border-gray-800
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe transition-colors duration-200">
+  // CHANGED: Added extreme z-index layer, forced it to sit strictly at the screen's viewport bottom
+  <div className="block md:hidden fixed bottom-0 left-0 right-0 z-[9999] w-full bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-all duration-200">
       <div className="flex justify-around items-center h-16 max-w-md mx-auto px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.path;

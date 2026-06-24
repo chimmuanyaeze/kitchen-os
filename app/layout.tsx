@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import Navbar from "@/components/Navbar";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,14 +47,27 @@ export default function RootLayout({
         />
       </head>
       
-      {/* REMOVED: bg-gray-50 and dark:bg-gray-900. 
-          Now globals.css will handle the background color flawlessly! */}
-      <body className="flex flex-col min-h-screen text-gray-900 dark:text-gray-100 pb-16 md:pb-0 md:pt-16 transition-colors duration-200">
+      {/* 🚀 FIXED: The body tag is now a clean base shell. It does not compete with page content layout */}
+      <body className="h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
+        
+        {/* Drops down globally if the user loses Wi-Fi */}
+        <OfflineIndicator />
+      
+        {/* Desktop Navbar (Hidden on mobile) */}
         <Navbar />
-        <div className="flex-grow">
-          {children}
+
+        {/* 🚀 FIXED Master Content Container:
+            - md:pt-20 pushes the page down on desktop so it never hides behind the Top Nav.
+            - pb-20 pushes the page up on mobile devices so it never hides behind the Bottom Nav. */}
+        <div className="min-h-screen flex flex-col pt-0 md:pt-20 pb-20 md:pb-0 w-full">
+          <main className="flex-grow w-full">
+            {children}
+          </main>
         </div>
+
+        {/* Mobile Bottom Navigation (Hidden on desktop) */}
         <BottomNav />
+
       </body>
     </html>
   );
